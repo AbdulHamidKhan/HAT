@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Division {
+  id        Int        @id @default(autoincrement())
+  name_en   String
+  name_bn   String
+  code      String     @unique
+  districts District[]
+
+  @@map("divisions")
+}
+
+model District {
+  id          Int      @id @default(autoincrement())
+  division_id Int
+  name_en     String
+  name_bn     String
+  code        String   @unique
+  division    Division @relation(fields: [division_id], references: [id])
+  areas       Area[]
+
+  @@map("districts")
+}
+
+enum AreaType {
+  upazila
+  thana
+  ward
+}
+
+model Area {
+  id          Int      @id @default(autoincrement())
+  district_id Int
+  type        AreaType
+  name_en     String
+  name_bn     String
+  district    District @relation(fields: [district_id], references: [id])
+  markets     Market[]
+
+  @@map("areas")
+}
+
+enum MarketType {
+  wholesale
+  retail
+  mixed
+  kitchen_market
+  supershop
+}
+
+model Market {
+  id           Int      @id @default(autoincrement())
+  area_id      Int
+  name_en      String
+  name_bn      String
+  aliases      String[]
+  lat          Float
+  lng          Float
+  market_type  MarketType
+  opening_days String[]
+  status       String   @default("active")
+  created_by   String?
+  verified     Boolean  @default(false)
+  area         Area     @relation(fields: [area_id], references: [id])
+  
+  // A raw postgis geography point can be added later via raw query migrations if needed, 
+  // but for simple distance calculations on a small set (< 100k), Prisma + haversine works, 
+  // or we can use raw PostGIS queries.
+  // location   Unsupported("geography(Point, 4326)")?
+
+  @@map("markets")
+}
+
+enum CanonicalUnit {
+  kg
+  g
+  litre
+  ml
+  piece
+  dozen
+  hali
+  bundle
+}
+
+model Item {
+  id                 Int             @id @default(autoincrement())
+  canonical_name_en  String
+  canonical_name_bn  String
+  category           String
+  subcategory        String?
+  canonical_unit     CanonicalUnit
+  perishability_days Int
+  is_tcb_tracked     Boolean         @default(false)
+  is_dam_tracked     Boolean         @default(false)
+  variants           ItemVariant[]
+
+  @@map("items")
+}
+
+model ItemVariant {
+  id      Int          @id @default(autoincrement())
+  item_id Int
+  name_en String
+  name_bn String
+  grade   String?
+  item    Item         @relation(fields: [item_id], references: [id])
+  aliases ItemAlias[]
+
+  @@map("item_variants")
+}
+
+model ItemAlias {
+  item_variant_id Int
+  alias           String
+  lang            String
+  variant         ItemVariant @relation(fields: [item_variant_id], references: [id])
+
+  @@id([item_variant_id, alias])
+  @@map("item_aliases")
+}

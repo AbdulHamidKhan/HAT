@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: haat
+      POSTGRES_USER: haat_user
+      POSTGRES_PASSWORD: haat_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:
